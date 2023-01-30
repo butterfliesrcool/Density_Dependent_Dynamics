@@ -1,0 +1,151 @@
+---
+title: "Density_Project_Module"
+author: "Abby Robinson"
+date: "1/30/2023"
+output: html_document
+---
+
+# How do density dependent dynamics influence the efficacy of mimetic signaling? 
+
+## This module will walk you through conducting a robust statistical analysis of data collected at La Selva Biological Station during the summer of 2022. 
+
+## First step: Connecting to GitHub
+
+You'll need to create a project in RStudio on your computer and link to to my GitHub repository for this project. You can find my GitHub repo [here](https://github.com/butterfliesrcool/Density_Dependent_Dynamics)
+
+To link a R Project to a GitHub Repo, 
+1. In RStudio, go to "file", "new project" 
+2. Select "version control" and "git"
+3. Input the URL for my repo (above), name your project, and chose where on your computer you want to store it 
+4. You can now create your own R Markdown file to begin writing your code!
+
+If you have any issues connecting to GitHub or want a more detailed refresher, check out Dr. Chris Schmitt's GitHub module [here](https://fuzzyatelin.github.io/bioanth-stats/module-02/module-02.html)
+
+## Initial Data Visualization 
+
+### What are the goals of this project? 
+
+we are testing the hypothesis that variation in the absolute density of Batesian models and their imperfect mimics impacts the rate of predation on artificial butterfly facsimiles using a paired experimental design (low vs. high density)
+
+### Loading the data 
+
+At this point, you have used the final sorted attack photos to write two data sets: one with count data and another with binomial data. You should have also calculated, by hand, the attack totals on each day. Please compare those attack rates to the ones calculated below. If they do not match, you may need to check your excel file for spaces using the find and replace functions 
+
+Install the "Curl" Package and then load the package library using the code below 
+
+```{r}
+library(curl)
+```
+
+Use the "curl" command to load the data into R using the data file link from the repo 
+
+```{r}
+c <- curl("https://raw.githubusercontent.com/butterfliesrcool/Temporal_Dynamics/main/Quabbin_Mimic_Data.csv")
+mimic <- read.csv(c, header = TRUE, sep = ",")
+head(mimic)
+```
+
+Making sure R is "reading" the variables field.day, experiment.day, field.site, species, and treatment at factors. Attacks variable should be an integer value 
+
+```{r}
+# make experimental.day variable factor 
+class(mimic$experiment.day) 
+mimic$experiment.day <- as.factor(mimic$experiment.day)
+class(mimic$experiment.day)
+
+# make field.day variable factor
+class(mimic$field.day) 
+mimic$field.day <- as.factor(mimic$field.day)
+class(mimic$field.day)
+
+# make site variable factor 
+class(mimic$field.site)
+mimic$field.site <- as.factor(mimic$field.site)
+class(mimic$field.site)
+
+# make sure attack variable is integer 
+class(mimic$attacks) # only thing that should be an integer 
+
+# make species variable factor 
+class(mimic$species)
+mimic$species <- as.factor(mimic$species)
+class(mimic$species)
+
+# make treatment variable factor 
+class(mimic$treatment)
+mimic$treatment <- as.factor(mimic$treatment)
+class(mimic$treatment)
+```
+
+```{r}
+# histogram of attacks 
+hist(mimic$attacks)  #concerns about zero inflation based on histogram? 
+
+# check variance and mean to assess for over /  under - dispersion 
+var(mimic$attacks)
+mean(mimic$attacks) # variance is greater than mean, which indicates that over-dispersion might be an issue 
+```
+
+```{r}
+# summarizing attacks 
+aggregate(x= mimic$attacks, by= list(mimic$experiment.day, mimic$species), FUN=sum)
+```
+
+Do these numbers match yours? If so, we can move on! 
+
+## Model Building 
+
+Install and load  the lme4, glmmTMB, and performance packages 
+
+```{r}
+library(lme4)
+library("glmmTMB")
+library(performance)
+```
+
+```{r}
+mod1 <- glmmTMB(attacks ~ experiment.day*species + treatment*species + (1|field.site) + (1|field.day), data=mimic,ziformula=~1,family=poisson) 
+summary(mod1)
+check_singularity(mod1) 
+
+# singularity issues, likely due to the field.day random effect variable 
+```
+
+We will need to check this model for singularity issues, convergence issues, error messages, residuals, and assumptions fit 
+
+Check residuals with "DHARMa" package 
+
+```{r}
+library(DHARMa)
+```
+
+We used the "DHARMa" package to check residuals and model assumptions 
+```{r}
+vignette("DHARMa", package="DHARMa") ### Useful information for checking residuals/ model assumptions 
+```
+
+```{r}
+mod1simulation <- simulateResiduals(fittedModel = mod1, plot = T)
+testUniformity(mod1simulation) 
+testOutliers(mod1simulation)
+testDispersion(mod1simulation) 
+testZeroInflation(mod1simulation) 
+```
+
+## Post Hoc Pairwise Comparison 
+
+```{r}
+library(emmeans)
+```
+
+```{r}
+post.hoc1 <- emmeans(mod1, pairwise ~ species|treatment) 
+#there is a significant difference in the attack rates on junonia and limenitis only in the zero week treatment (simultaneous presentation)
+post.hoc1
+```
+
+
+## Summary 
+
+This is the analysis you will have to modify and apply to the Costa Rica Project 
+
