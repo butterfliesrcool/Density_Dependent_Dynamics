@@ -280,6 +280,9 @@ aggregate(x= mimic$attacks, by= list(mimic$experiment.day, mimic$species), FUN=s
 ## Current Matrix version is 1.3.4
 ## Please re-install &#39;TMB&#39; from source using install.packages(&#39;TMB&#39;, type = &#39;source&#39;) or ask CRAN for a binary version of &#39;TMB&#39; matching CRAN&#39;s &#39;Matrix&#39; package</code></pre>
 <pre class="r"><code>library(performance)</code></pre>
+<p>Here we start the process of building a generalized linear mixed model (GLMM). The model below was used to analyze the data from the quabbin reservoir. We will modify it to fit the data and research questions from Costa Rica. First, our response variable is “attacks”, when this data is recorded as counts (total number of attacks on each species), we can use the Poisson distribution (family=poisson). However, the assumptions of the Poisson distribution may not be met if our data is zero inflated. If this happened, we can try to adjust the model or use the negative binomial distribution instead.</p>
+<p>the * in the model below indicates an interaction between variables. For example, (attacks ~ treatment + species) would tell you if attacks vary between different treatments and if attacks vary between species, independently. Alternatively, (attacks ~ treatment*species) would tell you if the total number of attacks varies across species within different treatments. We will need to figure out the right coding syntax to address our hypothesis from the Costa Rica project.</p>
+<p>The variables discussed above are fixed variables because they represent specific treatments that we employed. The location of field sites and the day that we collected data are random effect variables because they are things that could influence our results, but were not specifically controled in the experiment.</p>
 <pre class="r"><code>mod1 &lt;- glmmTMB(attacks ~ experiment.day*species + treatment*species + (1|field.site) + (1|field.day), data=mimic,ziformula=~1,family=poisson) 
 summary(mod1)</code></pre>
 <pre><code>##  Family: poisson  ( log )
@@ -378,6 +381,7 @@ summary(mod1)</code></pre>
 <div id="post-hoc-pairwise-comparison" class="section level2">
 <h2>Post Hoc Pairwise Comparison</h2>
 <pre class="r"><code>library(emmeans)</code></pre>
+<p>For the Costa Rica project, we want to compare attacks on iphiclus and serpa directly to attacks on junonia to account for variation in the number of facsimiles in the low density and high density experiments. To do this, we will perform a pairwise post hoc test comparing species within the different treatments</p>
 <pre class="r"><code>post.hoc1 &lt;- emmeans(mod1, pairwise ~ species|treatment) 
 #there is a significant difference in the attack rates on junonia and limenitis only in the zero week treatment (simultaneous presentation)
 post.hoc1</code></pre>

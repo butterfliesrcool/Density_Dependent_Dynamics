@@ -13,10 +13,14 @@ output: html_document
 
 You'll need to create a project in RStudio on your computer and link to to my GitHub repository for this project. You can find my GitHub repo [here](https://github.com/butterfliesrcool/Density_Dependent_Dynamics)
 
-To link a R Project to a GitHub Repo, 
+### To link a R Project to a GitHub Repo, 
+
 1. In RStudio, go to "file", "new project" 
+
 2. Select "version control" and "git"
+
 3. Input the URL for my repo (above), name your project, and chose where on your computer you want to store it 
+
 4. You can now create your own R Markdown file to begin writing your code!
 
 If you have any issues connecting to GitHub or want a more detailed refresher, check out Dr. Chris Schmitt's GitHub module [here](https://fuzzyatelin.github.io/bioanth-stats/module-02/module-02.html)
@@ -103,6 +107,12 @@ library("glmmTMB")
 library(performance)
 ```
 
+Here we start the process of building a generalized linear mixed model (GLMM). The model below was used to analyze the data from the quabbin reservoir. We will modify it to fit the data and research questions from Costa Rica. First, our response variable is "attacks", when this data is recorded as counts (total number of attacks on each species), we can use the Poisson distribution (family=poisson). However, the assumptions of the Poisson distribution may not be met if our data is zero inflated. If this happened, we can try to adjust the model or use the negative binomial distribution instead. 
+
+the * in the model below indicates an interaction between variables. For example, (attacks ~ treatment + species) would tell you if attacks vary between different treatments and if attacks vary between species, independently. Alternatively, (attacks ~ treatment*species) would tell you if the total number of attacks varies across species within different treatments. We will need to figure out the right coding syntax to address our hypothesis from the Costa Rica project. 
+
+The variables discussed above are fixed variables because they represent specific treatments that we employed. The location of field sites and the day that we collected data are random effect variables because they are things that could influence our results, but were not specifically controled in the experiment. 
+
 ```{r}
 mod1 <- glmmTMB(attacks ~ experiment.day*species + treatment*species + (1|field.site) + (1|field.day), data=mimic,ziformula=~1,family=poisson) 
 summary(mod1)
@@ -137,6 +147,8 @@ testZeroInflation(mod1simulation)
 ```{r}
 library(emmeans)
 ```
+
+For the Costa Rica project, we want to compare attacks on iphiclus and serpa directly to attacks on junonia to account for variation in the number of facsimiles in the low density and high density experiments. To do this, we will perform a pairwise post hoc test comparing species within the different treatments 
 
 ```{r}
 post.hoc1 <- emmeans(mod1, pairwise ~ species|treatment) 
