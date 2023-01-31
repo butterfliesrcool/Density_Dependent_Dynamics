@@ -176,8 +176,25 @@ pre code {
 <div id="this-module-will-walk-you-through-conducting-a-robust-statistical-analysis-of-data-collected-at-la-selva-biological-station-during-the-summer-of-2022." class="section level2">
 <h2>This module will walk you through conducting a robust statistical analysis of data collected at La Selva Biological Station during the summer of 2022.</h2>
 </div>
-<div id="first-step-connecting-to-github" class="section level2">
-<h2>First step: Connecting to GitHub</h2>
+<div id="first-step-make-the-data" class="section level2">
+<h2>First Step: Make the Data</h2>
+<p>I’ve sent you an excel file to construct the initial data set from recorded attack photos. When you make these files, it is very important that you use the same format for naming all terms and variables. It is also very important to NOT include any spaces in the cells. Putting a space after a word doesn’t mean much in excel, but we are converting these files into CSV files and inputting them into R, and R does detects spaces, and will categorize terms that contain a space differently.</p>
+<p>Given all the potential issues with this initial data writing process, it is important for us to have a way to check whether that data has been inputted without error. So, you will need to calculate, by hand, how many attacks we see on each facsimile type (iphiclus, serpa, junonia) for each experiment (Wk1: LD, Wk1: HD, Wk2: LD, Wk2: HD) on each day (1, 2, 3, 4). This will be your first step. After calculating these totals, we can decide whether to include attacks marked as “maybe” in our analysis. My initial plan is to not include these attacks, but if we have low attack rates, we might need to include them.</p>
+<p>You will make write two, separate excel files. One will be written as “count” data and the other will be written as “binomial” data. In the count data set, you will input a total number of attacks on each facsimile type for each site. In the binomial data set, you will input attacks as 1’s and 0’s. binomial data is more informative, more robust, and gives us more flexibility with statistical analysis, but there is a chance that our data will be zero-inflated, which happens when an excessive number of zeros cause the data to be skewed and cause analyses with a binomial distribution to be uninformative. If this is the case, we will proceed with the count data. Therefore, you will make both types of datasets before we get started.</p>
+<p>I’ve given you an example of how to write data from one observation event at one site in the excel. For the count data, you will write one line for each species in each site. For the binomial data, you will write one line for each individual facsimile in each site. You will also include the date that data were recorded so we can include this as a random effect in our model.</p>
+<p>We also want to include “site” as a random effect variable in our analysis, so we need to write this variable in our data set in a way that accurately tells R which sites are different. Site 1 in the week 1 low density experiment is not the same as site 1 in the week 2 low density experiment, so we don’t want to give these two different locations the same name in our dataset.</p>
+<div id="given-that-you-will-record" class="section level4">
+<h4>Given that, you will record…</h4>
+<ul>
+<li><p>Week 1: Low Density Sites 1-25 = sites 1-25 in dataset</p></li>
+<li><p>Week 1: High Density Sites 1-25 = sites 26-50 in dataset</p></li>
+<li><p>Week 2: Low Density Sites 1-25 = sites 51-75 in dataset</p></li>
+<li><p>Week 2: High Density Sites 1-25 = sites 76-100 in dataset</p></li>
+</ul>
+</div>
+</div>
+<div id="second-step-connecting-to-github" class="section level2">
+<h2>Second Step: Connecting to GitHub</h2>
 <p>You’ll need to create a project in RStudio on your computer and link to to my GitHub repository for this project. You can find my GitHub repo <a href="https://github.com/butterfliesrcool/Density_Dependent_Dynamics">here</a></p>
 <div id="to-link-a-r-project-to-a-github-repo" class="section level3">
 <h3>To link a R Project to a GitHub Repo,</h3>
@@ -190,8 +207,8 @@ pre code {
 <p>If you have any issues connecting to GitHub or want a more detailed refresher, check out Dr. Chris Schmitt’s GitHub module <a href="https://fuzzyatelin.github.io/bioanth-stats/module-02/module-02.html">here</a></p>
 </div>
 </div>
-<div id="initial-data-visualization" class="section level2">
-<h2>Initial Data Visualization</h2>
+<div id="third-step-initial-data-visualization" class="section level2">
+<h2>Third Step: Initial Data Visualization</h2>
 <div id="what-are-the-goals-of-this-project" class="section level3">
 <h3>What are the goals of this project?</h3>
 <p>we are testing the hypothesis that variation in the absolute density of Batesian models and their imperfect mimics impacts the rate of predation on artificial butterfly facsimiles using a paired experimental design (low vs. high density)</p>
@@ -269,8 +286,8 @@ aggregate(x= mimic$attacks, by= list(mimic$experiment.day, mimic$species), FUN=s
 <p>Do these numbers match yours? If so, we can move on!</p>
 </div>
 </div>
-<div id="model-building" class="section level2">
-<h2>Model Building</h2>
+<div id="fourth-step-model-building" class="section level2">
+<h2>Fourth Step: Model Building</h2>
 <p>Install and load the lme4, glmmTMB, and performance packages</p>
 <pre class="r"><code>library(lme4)</code></pre>
 <pre><code>## Loading required package: Matrix</code></pre>
