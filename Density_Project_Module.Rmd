@@ -178,6 +178,42 @@ post.hoc1 <- emmeans(mod1, pairwise ~ species|treatment)
 post.hoc1
 ```
 
+## Survival Analysis 
+
+Butterfly model survivorship across the four day experimental period will be analyzed using a Cox propportional-hazards regression model ("survival" package) with post hoc Wald tests between phenotype pairs. 
+
+```{r}
+library(survival)
+library(survminer)
+```
+
+```{r}
+pup.rate <- survfit(Surv(dev.days, pupa.status) ~ host.plant, data = pup.dev)
+summary(pup.rate)
+```
+
+Cox proportional-hazards regression model
+
+```{r}
+coxph(Surv(dev.days, pupa.status) ~ host.plant, data = pup.dev)
+```
+
+```{r}
+### non-ggplot plot (lots of easy resources online to make these pretty
+
+cats <- survfit(Surv(dev.days, pupa.status) ~ host.plant, data = pup.dev)
+plot(cats,     
+    xlab = "Time Since Hatching (Days)", 
+    ylab = "Rate of Pupation",
+    fun = "event",
+    col = c("darkolivegreen", "darkorchid4" ), lwd=5, cex = 6,
+    )
+
+legend(0, 1.0, legend=c("Aspen", "Black Cherry"),
+       col=c("darkolivegreen", "darkorchid4"),lwd=5, lty=1:1, cex=1.5, title = "Host Plants")
+
+```
+
 
 ## Summary 
 
