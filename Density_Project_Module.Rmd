@@ -66,14 +66,14 @@ library(curl)
 Use the "curl" command to load the data into R using the data file link from the repo 
 
 ```{r}
-c <- curl("put link here ")
-count <- read.csv(c, header = TRUE, sep = ",")
-head(count)
+c <- curl("https://raw.githubusercontent.com/butterfliesrcool/Temporal_Dynamics/main/Quabbin_Mimic_Data.csv")
+mimic <- read.csv(c, header = TRUE, sep = ",")
+head(mimic)
 ```
 
 Making sure R is "reading" the variables field.day, experiment.day, field.site, species, and treatment at factors. Attacks variable should be an integer value 
 
-```{r}
+```{r echo=TRUE}
 # make experimental.day variable factor 
 class(mimic$experiment.day) 
 mimic$experiment.day <- as.factor(mimic$experiment.day)
@@ -208,6 +208,12 @@ summary(Wk1LD_model)
 ```
 
 Finkbeiner also ran a Cox proportional-hazards regression model through the survival package, which is replicated below. As with the glm above, she reported pairwise comparisons between all species. To replicate this, I subsetted each pair and ran separate Cox proportional-hazards regression models for each. As mentioned above, my p-values do not match those of the original publication exactly, but this is likely due to the 15 eliminated observations. All comparisons that were reported as significant (p-value = <0.05) in the original publication are also significant in this replicated analysis. 
+
+```{r}
+# SUSAN'S DATA 
+p <- curl("https://raw.githubusercontent.com/butterfliesrcool/BI588_Replication_Assignment/main/Adelpha2016_binomial.csv")
+binomial.data  <- read.csv(p, header = TRUE, sep = ",", stringsAsFactors = FALSE)
+``` 
 
 ```{r}
 coxph(Surv(experiment_day, experiment_day+1, attacks) ~ species, data=Wk1LD)
