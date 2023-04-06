@@ -66,9 +66,9 @@ library(curl)
 Use the "curl" command to load the data into R using the data file link from the repo 
 
 ```{r}
-c <- curl("https://raw.githubusercontent.com/butterfliesrcool/Temporal_Dynamics/main/Quabbin_Mimic_Data.csv")
-mimic <- read.csv(c, header = TRUE, sep = ",")
-head(mimic)
+c <- curl("put link here ")
+count <- read.csv(c, header = TRUE, sep = ",")
+head(count)
 ```
 
 Making sure R is "reading" the variables field.day, experiment.day, field.site, species, and treatment at factors. Attacks variable should be an integer value 
@@ -187,33 +187,92 @@ library(survival)
 library(survminer)
 ```
 
-```{r}
-pup.rate <- survfit(Surv(dev.days, pupa.status) ~ host.plant, data = pup.dev)
-summary(pup.rate)
-```
-
-Cox proportional-hazards regression model
+Use the "curl" command to load the binomial data into R for the survival analysis 
 
 ```{r}
-coxph(Surv(dev.days, pupa.status) ~ host.plant, data = pup.dev)
+b <- curl("https://raw.githubusercontent.com/butterfliesrcool/Density_Dependent_Dynamics/main/density_dependence_binomial.csv")
+binomial <- read.csv(b, header = TRUE, sep = ",", na.strings=c("","NA"))
+binomial[is.na(binomial)] <- "N" 
+head(binomial)
 ```
+
+Within the package "Survival" we can use the function "Surv" to create a Survival object. We can then use the function "survfit" to generate percent survivorship for our four species across the four-day experiment. Finkbeiner reports overall survivorship as 94.0% for iphiclus, 89.6% for evarete, 88.8% for serpa, and 89.8% for leucopthalma. We can compare these survival scores to those generated through my replicated analysis by looking at the survival on the fourth day for each species in the output below. 
+
 
 ```{r}
-### non-ggplot plot (lots of easy resources online to make these pretty
-
-cats <- survfit(Surv(dev.days, pupa.status) ~ host.plant, data = pup.dev)
-plot(cats,     
-    xlab = "Time Since Hatching (Days)", 
-    ylab = "Rate of Pupation",
-    fun = "event",
-    col = c("darkolivegreen", "darkorchid4" ), lwd=5, cex = 6,
-    )
-
-legend(0, 1.0, legend=c("Aspen", "Black Cherry"),
-       col=c("darkolivegreen", "darkorchid4"),lwd=5, lty=1:1, cex=1.5, title = "Host Plants")
-
+Wk1 <- subset(binomial, week == "1")
+Wk1LD <- subset(Wk1, experiment == "low_density")
+Wk1LD_model <- survfit(Surv(experiment_day, experiment_day+1, attacks) ~ species, data=Wk1LD)
+Wk1LD_model
+summary(Wk1LD_model)
 ```
 
+Finkbeiner also ran a Cox proportional-hazards regression model through the survival package, which is replicated below. As with the glm above, she reported pairwise comparisons between all species. To replicate this, I subsetted each pair and ran separate Cox proportional-hazards regression models for each. As mentioned above, my p-values do not match those of the original publication exactly, but this is likely due to the 15 eliminated observations. All comparisons that were reported as significant (p-value = <0.05) in the original publication are also significant in this replicated analysis. 
+
+```{r}
+coxph(Surv(experiment_day, experiment_day+1, attacks) ~ species, data=Wk1LD)
+```
+
+Subset specific species pairwise comparisons from "binomial.data"
+```{r}
+ei <- subset(binomial.data, species %in% c("evarete", "iphiclus"), drop = FALSE)
+si <- subset(binomial.data, species %in% c("serpa", "iphiclus"), drop = FALSE)
+li <- subset(binomial.data, species %in% c("leucopthalma", "iphiclus"), drop = FALSE)
+le <- subset(binomial.data, species %in% c("leucopthalma", "evarete"), drop = FALSE)
+ls <- subset(binomial.data, species %in% c("leucopthalma", "serpa"), drop = FALSE)
+es <- subset(binomial.data, species %in% c("evarete", "serpa"), drop = FALSE)
+```
+
+evarete-iphiclus comparison (significant)
+```{r}
+coxph(Surv(day, day+1, attacks) ~ species, data=ei)
+```
+
+serpa-iphiclus comparison (significant)
+```{r}
+coxph(Surv(day, day+1, attacks) ~ species, data=si)
+```
+
+leucopthalma-iphiclus comparison (significant)
+```{r}
+coxph(Surv(day, day+1, attacks) ~ species, data=li)
+```
+
+leucopthalma-evarete comparison (not significant)
+```{r}
+coxph(Surv(day, day+1, attacks) ~ species, data=le)
+```
+
+leucopthalma-serpa comparison (not significant)
+```{r}
+coxph(Surv(day, day+1, attacks) ~ species, data=ls)
+```
+
+evarete-serpa comparison (not significant)
+```{r}
+coxph(Surv(day, day+1, attacks) ~ species, data=es)
+```
+
+While Finkbeiner did not report using the pairwise_survdiff() function in her publication, this is another possibly easier way to generate pairwise comparisons in the survival differences between species. 
+
+```{r}
+survdiff(Surv(day, attacks) ~ species, data=binomial.data)
+pairwise_survdiff(Surv(day, attacks) ~ species, p.adjust.method = "BH",
+     data = binomial.data)
+```
+
+
+```{r}
+library(ggplot2)
+```
+
+We can plot the survfit model generated above in baseR using the function plot()
+```{r}
+plot(Wk1LD_model, xlab="Time (days)", 
+           ylab="Survivorship",
+           ylim = c(0.94, 1.0), 
+           xlim = c(1, 5))
+```
 
 ## Summary 
 
