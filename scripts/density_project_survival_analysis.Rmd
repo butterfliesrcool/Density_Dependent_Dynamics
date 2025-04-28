@@ -1,0 +1,278 @@
+---
+title: "density_dependence_survival_analysis"
+author: "Abby Robinson"
+date: "2025-02-12"
+output: html_document
+---
+
+## laod and clean data 
+```{r load packages}
+##Install & load packages 
+library(curl)
+library(ggplot2)
+library(survival)
+library(survminer)
+library(tibble)
+```
+
+```{r call binomial data }
+# set working directory 
+# load bimonial data 
+setwd("/Users/abbyrobinson/Desktop/Density Dependent Dynamics Project/Density_Dependent_Dynamics_GitHub_Repo/data_files") 
+density_data <- read.csv("density_dependence_binomial_data_intervals.csv", header = TRUE, sep = ",", na.strings=c("","NA")) 
+density_data[is.na(density_data)] <- "N" 
+head(density_data)
+```
+
+```{r day five data frame}
+##create day five dataset for figure 
+day_five_LD_PAL <- data_frame(
+  unpalatability_treatment = rep("no", each = 1500), 
+  density_treatment = rep("low", each = 1500),
+  day_interval_left = rep(4, each = 1500),
+  day_interval_right = rep(5, each = 1500),
+  experimental_day = rep(5, each = 1500),
+  site = rep(1:25, each = 60), 
+  record_date = rep("NA", each = 1500), 
+  species = rep(rep(c("iphiclus", "serpa", "junonia"), times = 1, each = 20), times=25), 
+  fac_number = rep(rep(1:20, times = 3, each = 1), times=25), 
+  confidence = rep("N", each = 1500), 
+  attacks = rep(0, each = 1500)
+)
+
+day_five_LD_UNPAL <- data_frame(
+  unpalatability_treatment = rep("yes", each = 1500), 
+  density_treatment = rep("low", each = 1500),
+  day_interval_left = rep(4, each = 1500),
+  day_interval_right = rep(5, each = 1500),
+  experimental_day = rep(5, each = 1500),
+  site = rep(51:75, each = 60), 
+  record_date = rep("NA", each = 1500), 
+  species = rep(rep(c("iphiclus", "serpa", "junonia"), times = 1, each = 20), times=25), 
+  fac_number = rep(rep(1:20, times = 3, each = 1), times=25), 
+  confidence = rep("N", each = 1500), 
+  attacks = rep(0, each = 1500)
+)
+
+day_five_HD_PAL <- data_frame(
+  unpalatability_treatment = rep("no", each = 3000), 
+  density_treatment = rep("high", each = 3000),
+  day_interval_left = rep(4, each = 3000),
+  day_interval_right = rep(5, each = 3000),
+  experimental_day = rep(5, each = 3000),
+  site = rep(26:50, each = 120), 
+  record_date = rep("NA", each = 3000), 
+  species = rep(rep(c("iphiclus", "serpa", "junonia"), times = 1, each = 40), times=25), 
+  fac_number = rep(rep(1:40, times = 3, each = 1), times=25), 
+  confidence = rep("N", each = 3000), 
+  attacks = rep(0, each = 3000)
+)
+
+day_five_HD_UNPAL <- data_frame(
+  unpalatability_treatment = rep("yes", each = 3000), 
+  density_treatment = rep("high", each = 3000),
+  day_interval_left = rep(4, each = 3000),
+  day_interval_right = rep(5, each = 3000),
+  experimental_day = rep(5, each = 3000),
+  site = rep(76:100, each = 120), 
+  record_date = rep("NA", each = 3000), 
+  species = rep(rep(c("iphiclus", "serpa", "junonia"), times = 1, each = 40), times=25), 
+  fac_number = rep(rep(1:40, times = 3, each = 1), times=25), 
+  confidence = rep("N", each = 3000), 
+  attacks = rep(0, each = 3000)
+)
+
+binomial_day_five <- rbind(day_five_LD_PAL, day_five_LD_UNPAL, day_five_HD_PAL, day_five_HD_UNPAL)
+
+#data for making survival plot 
+density_data <- rbind(density_data, binomial_day_five)
+unique(density_data$experimental_day)
+```
+
+```{r subset by treatment}
+#remove sites that experience no predator attacks
+
+##identify and remove sites that experienced no attacks
+sites_attacks <- aggregate(x=density_data$attacks, by= list(density_data$site), FUN=sum)
+colnames(sites_attacks) <- c("site", "total_attacks")
+sites_attacks <- subset(sites_attacks, total_attacks > 0)
+
+sites_attacks$site
+
+density_data <- subset(density_data, site %in% sites_attacks$site)
+
+#subset data set by treatment 
+high_density <- subset(density_data, density_treatment == "high")
+low_density <- subset(density_data, density_treatment == "low")
+
+unique(high_density$experimental_day)
+unique(low_density$experimental_day)
+
+HD_unpalatable <- subset(high_density, unpalatability_treatment == "yes")
+HD_palatable <- subset(high_density, unpalatability_treatment == "no")
+
+LD_unpalatable <- subset(low_density, unpalatability_treatment == "yes")
+LD_palatable <- subset(low_density, unpalatability_treatment == "no")
+
+unique(LD_palatable$experimental_day)
+tail(LD_palatable)
+```
+
+
+```{r summarize data}
+#summarizing attacks for binomial
+aggregate(x=density_data$attacks, by= list(density_data$species, density_data$unpalatability_treatment, density_data$density_treatment), FUN=sum)
+```
+
+## make survival plots for each treatment 
+
+```{r low density - palatable}
+unique(LD_palatable$experimental_day)
+
+PAL_LD_survival <- survfit(Surv(day_interval_left, day_interval_right, attacks) ~ species, data = LD_palatable)
+summary(PAL_LD_survival)
+
+
+PAL_LD_plot <- ggsurvplot(PAL_LD_survival,
+                   data=LD_palatable,
+                   title = "A. Low density, palatable treatment",
+                   pval=FALSE, 
+                   palette = c("red", "blue", "orange"),
+                   ylim = c(0.925, 1.0),
+                   xlab = "Days",
+                   size = 2,
+                   axes.offset = TRUE)
+```
+
+
+```{r low density - unpalatable}
+# week 2 low density survival plot 
+UNPAL_LD_survival <- survfit(Surv(day_interval_left, day_interval_right, attacks) ~ species, data = LD_unpalatable)
+summary(UNPAL_LD_survival)
+
+UNPAL_LD_plot <- ggsurvplot(UNPAL_LD_survival,
+                   data=LD_unpalatable,
+                   title = "B. Low density, unpalatable treatment",
+                   pval=FALSE, 
+                   palette = c("red", "blue", "orange"),
+                   ylim = c(0.925, 1.0),
+                   xlab = "Days",
+                   size = 2,
+                   axes.offset = TRUE)
+
+```
+
+
+```{r high density - palatable}
+# high density palatable survival plot 
+PAL_HD_survival <- survfit(Surv(day_interval_left, day_interval_right, attacks) ~ species, data = HD_palatable)
+summary(PAL_HD_survival)
+
+PAL_HD_plot <- ggsurvplot(PAL_HD_survival,
+                   data=HD_palatable,
+                   title = "C. High density, palatable treatment",
+                   pval=FALSE, 
+                   palette = c("red", "blue", "orange"),
+                   ylim = c(0.925, 1.0),
+                   xlab = "Days",
+                   size = 2,
+                   axes.offset = TRUE)
+```
+
+
+```{r high density - unpalatable}
+# week 2 high density survival plot 
+UNPAL_HD_survival <- survfit(Surv(day_interval_left, day_interval_right, attacks) ~ species, data = HD_unpalatable)
+summary(UNPAL_HD_survival)
+
+UNPAL_HD_plot <- ggsurvplot(UNPAL_HD_survival,
+                   data=HD_unpalatable,
+                   title = "C. High density, unpalatable treatment",
+                   pval=FALSE, 
+                   palette = c("red", "blue", "orange"),
+                   ylim = c(0.925, 1.0),
+                   xlab = "Days",
+                   size = 2,
+                   axes.offset = TRUE)
+```
+
+```{r facted plot with all treatments}
+##faceted figure
+density_survival <- survfit(Surv(day_interval_left, day_interval_right, attacks) ~ species, data = density_data)
+summary(density_survival)
+
+density_plot <- ggsurvplot(density_survival,
+                   data=density_data,
+                   facet.by = c("unpalatability_treatment", "density_treatment"),
+                   panel.labs = list(density_treatment = c("High Density", "Low Density"), 
+                                     unpalatability_treatment = c("Palatable", "Unpalatable") ),
+                   pval=FALSE, 
+                   panel.labs.background = list(fill = "lightgrey"),
+                   palette = c("red", "blue", "orange"),
+                   ylim = c(0.925, 1.0),
+                   xlab = "Days",
+                   size = 2,
+                   axes.offset = TRUE)
+
+# save output as PDF file 
+density_surv_fig <- ggsave(density_plot, file = "/Users/abbyrobinson/Desktop/Density Dependent Dynamics Project/Density_Dependent_Dynamics_GitHub_Repo/figures/density_surv_fig.pdf", width=15, height=10, units=c("in"), useDingbats=FALSE)
+```
+
+## cox proportional hazards model 
+```{r reload data}
+##reload data and remove day five from binomial dataset. We added day five to the survival plots to make differences on day four clearer 
+setwd("/Users/abbyrobinson/Desktop/Density Dependent Dynamics Project/Density_Dependent_Dynamics_GitHub_Repo/data_files") 
+density_data <- read.csv("density_dependence_binomial_data_intervals.csv", header = TRUE, sep = ",", na.strings=c("","NA")) 
+density_data[is.na(density_data)] <- "N" 
+head(density_data)
+
+##identify and remove sites that experienced no attacks
+sites_attacks <- aggregate(x=density_data$attacks, by= list(density_data$site), FUN=sum)
+colnames(sites_attacks) <- c("site", "total_attacks")
+sites_attacks <- subset(sites_attacks, total_attacks > 0)
+
+sites_attacks$site
+
+density_data <- subset(density_data, site %in% sites_attacks$site)
+
+#subset data set by treatment 
+high_density <- subset(density_data, density_treatment == "high")
+low_density <- subset(density_data, density_treatment == "low")
+
+unique(high_density$experimental_day)
+unique(low_density$experimental_day)
+
+HD_unpalatable <- subset(high_density, unpalatability_treatment == "yes")
+HD_palatable <- subset(high_density, unpalatability_treatment == "no")
+
+LD_unpalatable <- subset(low_density, unpalatability_treatment == "yes")
+LD_palatable <- subset(low_density, unpalatability_treatment == "no")
+```
+
+```{r}
+# must run cox proportional hazards models on each treatment separately because we cannot control for the random effect of higher sample sizes in the high density treatments 
+
+#high density - unpalatable treatment 
+cox_HD_unpal <- coxph(Surv(day_interval_left, day_interval_right, attacks) ~ species, data = HD_unpalatable)
+summary(cox_HD_unpal)
+pairwise_survdiff(Surv(day_interval_right, attacks) ~ species, data = HD_unpalatable, p.adjust.method = "none")
+
+#high density - palatable treatment 
+cox_HD_pal <- coxph(Surv(day_interval_left, day_interval_right, attacks) ~ species, data = HD_palatable)
+summary(cox_HD_pal)
+pairwise_survdiff(Surv(day_interval_right, attacks) ~ species, data = HD_palatable, p.adjust.method = "none")
+
+#low density - palatable treatment 
+cox_LD_pal <- coxph(Surv(day_interval_left, day_interval_right, attacks) ~ species, data = LD_palatable)
+summary(cox_LD_pal)
+pairwise_survdiff(Surv(day_interval_right, attacks) ~ species, data = LD_palatable, p.adjust.method = "none")
+
+#low density - unpalatable treatment
+cox_LD_unpal <- coxph(Surv(day_interval_left, day_interval_right, attacks) ~ species, data = LD_unpalatable)
+summary(cox_LD_unpal)
+pairwise_survdiff(Surv(day_interval_right, attacks) ~ species, data = LD_unpalatable, p.adjust.method = "none")
+
+```
+
+
+

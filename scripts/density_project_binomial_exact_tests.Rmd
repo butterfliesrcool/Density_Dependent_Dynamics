@@ -1,0 +1,59 @@
+---
+title: "density_project_binomial_exact_tests"
+author: "Abby Robinson"
+date: "2025-04-23"
+output: html_document
+---
+# binomial exact tests are used to assess the effect of density on predator learning 
+
+```{r call binomial data }
+# set working directory 
+# load bimonial data 
+setwd("/Users/abbyrobinson/Desktop/Density Dependent Dynamics Project/Density_Dependent_Dynamics_GitHub_Repo/data_files") 
+density_data <- read.csv("density_dependence_binomial_data.csv", header = TRUE, sep = ",", na.strings=c("","NA")) 
+density_data[is.na(density_data)] <- "N" 
+head(density_data)
+```
+
+```{r calculate attack rates}
+## make table to calculate expected attack rates from low density, unpalatable treatment 
+total_attacks <- aggregate(x=density_data$attacks, by= list(density_data$species, density_data$density_treatment, density_data$unpalatability_treatment), FUN=sum)
+colnames(total_attacks) <- c("species", "density_treatment", "unpalatability_treatment", "total_attacks")
+
+#subset unpalatability = yes
+total_attacks_unpal <- subset(total_attacks, unpalatability_treatment == "yes")
+total_attacks_unpal$facsimile_n <- c(1000, 1000, 1000, 500, 500, 500)
+total_attacks_unpal$observed_probability <- total_attacks_unpal$total_attacks / total_attacks_unpal$facsimile_n
+total_attacks_unpal
+```
+
+```{r calculate attack rates for high density}
+#assessing effect of density in predator learning 
+
+# perform binomial exact test comparing the probability of attack on each species with the probability of attack from the low density treatment as the expected attack rate 
+
+#junonia 
+binom.test(
+  20,
+  n = 1000,
+  p = 0.044,
+  alternative = c("two.sided"),
+  conf.level = 0.95)
+
+#serpa 
+binom.test(
+  25,
+  n = 1000,
+  p = 0.038,
+  alternative = c("two.sided"),
+  conf.level = 0.95)
+
+#iphiclus 
+binom.test(
+  19,
+  n = 1000,
+  p = 0.018,
+  alternative = c("two.sided"),
+  conf.level = 0.95)
+
+```
